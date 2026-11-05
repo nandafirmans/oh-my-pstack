@@ -2,11 +2,12 @@
   "repository": "https://github.com/cursor/plugins.git",
   "ref": "main",
   "path": "pstack",
-  "commit": "bdf7aa355337897f167153e05069aca505dae17c",
+  "commit": "bb68f2365eceafa0cb2d253112f675acf5f144cc",
   "protectedPrefixes": [
     "skills/poteto-mode/",
     "skills/pstack-pi/",
-    "skills/orchestrate-omp/"
+    "skills/orchestrate-omp/",
+    "agents/"
   ],
   "protectedPaths": [
     "skills/architect/SKILL.md",
@@ -39,7 +40,15 @@
     "skills/reproduce-and-fix-issues/references/feature-map.example.md",
     "skills/setup-benny/SKILL.md",
     "skills/triage-issue-reports/SKILL.md",
-    "skills/triage-issue-reports/references/routing.example.md"
+    "skills/triage-issue-reports/references/routing.example.md",
+    "skills/poteto-help/SKILL.md",
+    "skills/make-bot-ui/SKILL.md",
+    "skills/reflect/references/synthesizer.md",
+    "skills/poteto-help/references/prompting.md",
+    "skills/poteto-help/references/recipes.md",
+    "skills/no-comments/references/comment-sicko.md",
+    "skills/statechart/scripts/run.ts",
+    "skills/statechart/scripts/test/cli.test.ts"
   ],
   "sourceRoots": [
     {
@@ -49,6 +58,10 @@
     {
       "source": "pstack/automations/benny/skills",
       "destination": "skills"
+    },
+    {
+      "source": "pstack/agents",
+      "destination": "agents"
     }
   ]
 }

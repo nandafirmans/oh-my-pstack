@@ -64,10 +64,41 @@ Install from GitHub:
 omp install https://github.com/shrimpwtf/oh-my-pstack
 ```
 
-For local development, load the checkout directly:
+OMP includes the native `task` tool; do not install `pi-subagents` for OMP.
+For local development, load a checkout at any path:
 
 ```bash
-omp --plugin-dir /path/to/oh-my-pstack
+omp --plugin-dir /absolute/path/to/oh-my-pstack
+```
+
+
+For project-local native discovery without registering a global plugin, merge
+this into the target project's `.omp/config.yml` (replace the absolute path):
+
+```yaml
+skills:
+  customDirectories:
+    - /absolute/path/to/oh-my-pstack/skills
+```
+
+Custom skill directories load skills only. To load the two local compatibility
+agents too, copy their definitions into the target project's `.omp/agents/`:
+
+```bash
+mkdir -p .omp/agents
+cp /absolute/path/to/oh-my-pstack/agents/*.md .omp/agents/
+```
+
+Alternatively, place the skills directly under `.omp/skills/<name>/SKILL.md`.
+OMP scans one level under a skills root, not arbitrary nested clone directories.
+Read loaded skills through `skill://<name>` and invoke them interactively with
+`/skill:<name>`. Confirm custom agents in the live `task` inventory or `/agents`;
+do not assume skill discovery alone loads agents.
+
+From the target project, inspect a discovered skill without a model prompt:
+
+```bash
+omp read skill://pstack-pi
 ```
 
 ### OpenCode
@@ -127,25 +158,32 @@ After installing, start a fresh agent session in the project you want to work on
 Run the setup skill once:
 
 ```text
-$setup-pstack
+/skill:setup-pstack
 ```
 
-It detects the roles and models your host actually exposes, lets you choose the
-defaults for implementation and review work when the host supports per-child
-model selection. On a task-capable host, it writes concrete
-`provider/model-id` assignments to `.pstack/config.md` (or to `$PSTACK_CONFIG`
-when set). Native Pi can list and switch the single active model, but it does not
-include subagents. Install `pi-subagents`, restart Pi, and run
-`/subagents-doctor` before setup if you want role assignments. Setup then writes
-the pstack role map and Pi's `subagents.agentOverrides` with concrete model IDs.
-Without the extension, setup reports the limitation instead of pretending that
-role assignments are active. Switch Pi's single active model with `/model` or
-`pi --model provider/model-id`.
+Use the host's native invocation syntax: OMP uses `/skill:setup-pstack`; hosts
+that support `$setup-pstack` may use that instead. Setup detects available roles
+and models, then records workflow preferences in `.pstack/config.md` (or
+`$PSTACK_CONFIG`). That Markdown does not configure OMP routing.
+
+On OMP, project routing is in `.omp/config.yml`: `modelRoles` maps aliases to
+confirmed model selectors, and `task.agentModelOverrides` routes exact agent
+names through those aliases. Stock planning, design, research, and implementation
+can share the default worker, so different workflow preferences do not guarantee
+different runtime models. Per-call `model` is off by default and requires
+operator-approved models; project settings cannot grant them. Setup must report
+unapplied preferences rather than claim independent routing.
+
+Native Pi has no built-in subagents. For its parallel/per-role behavior, install
+`pi-subagents`, restart Pi, and run `/subagents-doctor`; setup then updates Pi's
+`.pi/settings.json` `subagents.agentOverrides` as well as pstack preferences.
+Without that extension, use `/model` or `pi --model provider/model-id` for Pi's
+single session model. These Pi settings do not configure OMP.
 
 Then route your first real task through the main workflow:
 
 ```text
-$poteto-mode add a small feature and prove it works end to end
+/skill:poteto-mode add a small feature and prove it works end to end
 ```
 
 The setup skill may offer to create a project verification skill when the project

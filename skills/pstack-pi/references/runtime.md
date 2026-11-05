@@ -27,14 +27,17 @@ unless the host reported it.
 | `owner` | One coupled implementation session retained through its lifecycle. |
 | `mechanical` | Fully specified low-judgment edits. |
 
-Map these roles to the live host's agent or task names. OMP's recommended mapping is
-`scout`, `designer`, `reviewer`, `security-reviewer`, `librarian`, `task`, and
-`sonic`. Claude Code and Codex may expose different names. The live inventory wins.
+Map these roles to the live host's agent or task names. On stock OMP, use `scout`
+for read-only repository discovery, `reviewer` for review and synthesis,
+`security-reviewer` for security review, `sonic` for mechanical work, and the
+default worker (omit `agent`) for implementation, planning, design, and external
+research. `designer` and `librarian` are not bundled OMP agents. A role describes
+the brief, not a guaranteed agent selector. Other hosts use their own inventory.
 
 Every child brief must stand alone. It must name its goal, role, writable scope,
 acceptance criteria, verification command, forbidden scope, and report format. A
-child does not spawn another child unless the host explicitly supports nested
-delegation and the active playbook requires it.
+child never starts children under this package's orchestration contract; the
+root coordinator owns every dispatch.
 
 ## Models
 
@@ -43,6 +46,21 @@ conversation can use without exposing any task or subagent facility that can sen
 a child to one of those models. Native Pi has this boundary: `pi --list-models`
 and `/model` select the single active conversation model, while Pi does not
 include built-in subagents.
+
+OMP is a separate runtime with a built-in `task` tool; do not install
+`pi-subagents` or write `.pi/settings.json` to configure OMP. Inspect the live
+task schema and agents, and use `omp models --json` or `/model` for the model
+inventory. OMP routes agents through `task.agentModelOverrides`, then agent
+frontmatter `model`, then the parent model/default fallback. Role aliases such as
+`@task` resolve through OMP's `modelRoles`; they are not agent names. Configure
+project routing in `.omp/config.yml`, preserving unrelated settings.
+
+OMP's per-call `model` is off by default. Its presence in the schema does not
+authorize its use: `task.perCallModel` must permit the calling surface and the
+exact model must be operator-approved. Project settings cannot grant per-call
+models. Prefer configured routing and omit task-item `model`. An
+`inherit-parent` preference is not a native model selector: omit a model override,
+and first check whether agent-specific settings or frontmatter already route it.
 
 For native Pi, install the maintained `pi-subagents` package when per-role models
 or parallel children are required:
@@ -62,8 +80,9 @@ Use concrete `provider/model-id` values only when the host exposes per-child mod
 selection and the value was confirmed in the live inventory. Use role aliases only
 when the host explicitly documents a role-to-model mapping. `inherit-parent` means
 the current conversation's model only when the host can pass it to a child. A
-missing role entry means the host default. A panel is a list of role or model
-choices, and its size controls fan-out.
+missing role entry means the host default. Panel lists control fan-out only when
+the workflow defines them as participants; an ordered judge preference pool
+selects one judge, not one child per entry.
 
 When the host has models but no child delegation, do not write a role mapping that
 looks active. Report the capability gap and tell the user to switch Pi's single
@@ -71,9 +90,12 @@ active model with `/model` or `pi --model provider/model-id`. Workflow skills st
 run on that active model, but panel and child-agent behavior is unavailable unless
 the user installs a host extension or uses a different runtime that provides it.
 
-The optional configuration path is `$PSTACK_CONFIG`. If it is unset, use
-`.pstack/config.md` in the current project for project-local settings. Do not write
-to a vendor-specific home directory unless the host explicitly asks for it.
+The optional preference path is `$PSTACK_CONFIG`. If unset, use
+`.pstack/config.md` in the current project. This Markdown is read by pstack
+workflows, not by OMP's settings loader: it neither creates agents nor changes
+runtime routing. Reconcile preferences with the live routing before dispatch;
+report a mismatch rather than claiming the preference ran. Do not write to a
+vendor-specific home directory unless the user explicitly asks for it.
 
 ## Questions and interaction
 
@@ -88,14 +110,21 @@ Invoke skills by their host-supported skill name, normally `/skill:<name>` or `$
 Within this package, sibling files are under `skills/<name>/`. Do not use a
 vendor-specific plugin path or assume a global installation path.
 
-OpenCode's native Agent Skills loader looks in `.opencode/skills/` for a project or
-`~/.config/opencode/skills/` globally. When installing this repository for
-OpenCode, copy the contents of this package's `skills/` directory into one of
-those locations. OpenCode loads a skill on demand through its native `skill`
-tool; it does not automatically scan an arbitrary cloned repository directory.
-OpenCode's built-in primary and subagents are the delegation surface. Use the
-host's `opencode.json` or `opencode.jsonc` model configuration and live agent
-inventory rather than assuming Pi's `pi-subagents` settings apply.
+OMP discovers `<project>/.omp/skills/<name>/SKILL.md` (including ancestor project
+roots), `~/.omp/agent/skills/<name>/SKILL.md`, installed plugin skill roots, and
+the immediate children of `skills.customDirectories` in `.omp/config.yml`.
+An arbitrary clone is not discovered automatically. For a clone at any path, set
+`skills.customDirectories` to its absolute `skills/` directory, or launch with
+`omp --plugin-dir /absolute/path/to/oh-my-pstack`. Read a loaded skill through
+`skill://<name>` and its assets through `skill://<name>/<relative-path>`; these
+addresses avoid global-path assumptions. Interactive invocation is
+`/skill:<name> [arguments]` when `skills.enableSkillCommands` is enabled.
+
+Custom skill directories do not load this package's `agents/`. For native local
+agents, copy the individual definitions into `<project>/.omp/agents/` (or use an
+OMP package/plugin loading path that discovers its `agents/` root). The live task
+inventory must confirm them before dispatch. OMP does not load direct
+`.claude/agents` or `.codex/agents` directories as native task agents.
 
 OpenCode's native Agent Skills loader looks in `.opencode/skills/` for a project or
 `~/.config/opencode/skills/` globally. When installing this repository for
@@ -105,6 +134,7 @@ tool; it does not automatically scan an arbitrary cloned repository directory.
 OpenCode's built-in primary and subagents are the delegation surface. Use the
 host's `opencode.json` or `opencode.jsonc` model configuration and live agent
 inventory rather than assuming Pi's `pi-subagents` settings apply.
+
 
 ## Transcripts and history
 
@@ -113,6 +143,13 @@ resource. Prefer `$PSTACK_TRANSCRIPTS_DIR` when the host does not expose a histo
 resource. Never scan another project or a global vendor transcript tree. If no
 transcript source is available, report the gap and continue only with evidence that
 does not require it.
+
+On OMP, use `history://<id>` for current child transcripts when reports are
+incomplete or suspicious. For an earlier-session consultation, use `seance`
+with `sourceSession` when the live inventory exposes it; the consultation is
+the historical read, so do not also scan or replay that session's `.jsonl`.
+If `seance` is unavailable, report the missing consult capability rather than
+claiming that ordinary file reading recreates the historical agent's context.
 
 ## Long-running work and verification
 

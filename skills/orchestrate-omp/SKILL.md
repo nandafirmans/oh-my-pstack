@@ -24,27 +24,30 @@ Use the exact names exposed by the live `task` tool; its inventory is authoritat
 | Routine scoped implementation | Omit `agent` for the default worker | `med` |
 | Difficult or ambiguous implementation | Omit `agent` for the default worker | `hi` |
 | Mechanical edits or data collection | `sonic` | `lo` |
-| UI/UX implementation or review | `designer` | `med` or `hi` |
+| UI/UX implementation or review | Omit `agent`; give a design-specific brief | `med` or `hi` |
 | Code-quality verdict | `reviewer` | `med` or `hi` |
 | Security verdict | `security-reviewer` | `hi` |
-| External library or API research | `librarian` | `lo` or `med` |
+| External library or API research | Omit `agent`; require primary-source evidence | `lo` or `med` |
 
 When the live task schema exposes `effort`, match it to the assignment: `lo` for narrow questions, `med` for routine work, and `hi` when ambiguity or consequence justifies it. Otherwise rely on the selected agent's configured model role; do not pass an unavailable field.
 
 Honor read-only and blocking markers in the live inventory. Never pass the default worker's name explicitly.
 
+`designer` and `librarian` are not bundled OMP selectors. Use them only if the
+live inventory explicitly lists installed custom agents with those names.
+
 ## 3. Dispatch
 
 1. When the live schema exposes `tasks[]`, put independent participants in one batch so they start together and structure shared `context` as `Goal`, `Constraints`, and `Contract`. Otherwise start one participant per task call without passing `context`.
-2. Give every item a stable CamelCase `name` of at most 32 characters, the most specific specialist `agent` when one fits, and a complete standalone `task`. Omit `agent` only for the default worker. Add `effort` only when the live schema exposes it.
+2. Give every item a stable CamelCase `name` of at most 32 characters, the most specific specialist `agent` when one fits, a complete standalone `task`, and required `solutionSpace` describing which fixes or designs remain open (not task size). Omit `agent` for the default worker. Add `effort` only when the live schema exposes it.
 3. Structure each assignment as `Target`, `Change`, and `Acceptance`. Include essential repository state, decisions, restrictions, and dependencies because children start without conversation history.
 4. Give every writer an exact writable scope. When the live schema exposes `isolated`, use `isolated: true` for concurrent writers that need separate workspaces, then inspect the returned metadata to learn whether changes were applied or retained as artifacts.
-5. Tell ordinary workers: `Complete this assignment directly. Do not call task or spawn subagents.` Allow nested delegation only when the assignment explicitly makes that worker a coordinator.
+5. Tell all workers: `Complete this assignment directly. Do not call task or spawn subagents.` The root alone dispatches children under this workflow.
 6. Tell workers to skip project-wide formatting, linting, and test suites. The root runs shared validation once after integration.
 
 Large context belongs in a local file referenced with `local://<path>`, not duplicated across assignments.
 
-Use `outputSchema` only when the coordinator needs a machine-readable result. Set `schemaMode: "strict"` when invalid output must fail rather than return with a warning.
+Use `outputSchema` and `schemaMode: "strict"` only when `task.structured` exposes those fields and a machine-readable result is needed. Otherwise require a final textual report. Do not assume that a `yield` tool is available in an ordinary unstructured task.
 
 ## 4. Coordinate
 
