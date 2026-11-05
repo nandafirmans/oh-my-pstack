@@ -52,6 +52,20 @@ const requiredSkills = new Set([
   "principle-sequence-verifiable-units",
   "principle-subtract-before-you-add",
   "principle-type-system-discipline",
+  "benchmark-checklist",
+  "correct",
+  "create-formal-verification-skill",
+  "in-your-own-words",
+  "ketchup",
+  "ketchup-video",
+  "maintain-formal-verification-skill",
+  "make-bot-ui",
+  "poteto-help",
+  "principle-attack-the-premise",
+  "principle-explain-the-number",
+  "principle-test-behavior-not-implementation",
+  "sharpen",
+  "statechart",
 ]);
 
 const failures = [];
@@ -59,7 +73,7 @@ const skillDirs = (await readdir(skillsRoot, { withFileTypes: true }))
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name);
 
-for (const name of requiredSkills) {
+for (const name of new Set([...requiredSkills, ...skillDirs])) {
   const path = join(skillsRoot, name, "SKILL.md");
   try {
     const source = await readFile(path, "utf8");
@@ -177,6 +191,8 @@ const forbidden = [
   "gpt-5.6-sol-max",
   "grok-4.6-fast-xhigh",
   "claude-opus-5-thinking-xhigh",
+  "grok-4.7-xhigh-fast",
+  "claude-opus-5-5-xhigh",
 ];
 for (const path of markdownFiles) {
   const source = await readFile(path, "utf8");

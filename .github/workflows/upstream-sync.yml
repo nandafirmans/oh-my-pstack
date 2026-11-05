@@ -16,7 +16,7 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Check out package
         uses: actions/checkout@v4
@@ -26,33 +26,56 @@ jobs:
         with:
           node-version: 22
 
+      - name: Detect upstream changes
+        id: upstream
+        shell: bash
+        run: |
+          set +e
+          node scripts/sync-upstream.mjs --check
+          status=$?
+          set -e
+          case "$status" in
+            0) echo "changed=false" >> "$GITHUB_OUTPUT" ;;
+            10) echo "changed=true" >> "$GITHUB_OUTPUT" ;;
+            *) exit "$status" ;;
+          esac
+
       - name: Apply safe upstream update
+        id: sync
+        if: steps.upstream.outputs.changed == 'true'
         run: node scripts/sync-upstream.mjs --apply
 
-      - name: Verify package
-        run: npm run verify
+      - name: Prepare protected reconciliation proposals
+        if: failure() && steps.sync.outcome == 'failure'
+        run: node scripts/sync-upstream.mjs --prepare-review "$RUNNER_TEMP/pstack-review"
 
-      - name: Test updater
-        run: npm run test:sync
+      - name: Retain blocked reconciliation for review
+        if: always() && steps.sync.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pstack-protected-review
+          path: ${{ runner.temp }}/pstack-review
+          if-no-files-found: warn
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
-
-      - name: Test bundled scripts
-        run: |
-          bun install --cwd skills/poteto-mode/scripts --frozen-lockfile
-          bun test orch watch-pr
-          bunx tsc --project skills/poteto-mode/scripts/watch-pr/tsconfig.json --noEmit --strict
+      - name: Validate synchronized package
+        if: steps.upstream.outputs.changed == 'true'
+        uses: ./.github/actions/validate
 
       - name: Open update pull request
+        if: steps.upstream.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v7
         with:
           commit-message: "chore: sync upstream pstack"
           title: "chore: sync upstream pstack"
           body: |
-            Automated update from the pinned authoritative Cursor pstack source.
+            Automated update from the authoritative pstack source pinned in upstream.lock.json.
 
-            The updater preserves OMP-owned adapters and fails before writing when
-            upstream changes a protected portability adaptation.
+            Managed files passed package, updater, watcher, planning, type, and statechart checks.
+            Protected OMP adaptations are never overwritten automatically. A changed protected
+            path or local adaptation blocks this job; reconciliation proposals are retained
+            as an artifact for explicit review, not treated as approvals.
           branch: automation/upstream-pstack
+          add-paths: |
+            skills
+            upstream.lock.json
           delete-branch: true

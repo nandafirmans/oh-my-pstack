@@ -8,12 +8,14 @@ disable-model-invocation: true
 
 ## Non-negotiables
 
-**Start every multi-step task with an explicit plan whose first item is to read the Principles section below in full.** The principles ground every trigger here. In your reply, name each principle that shaped a decision and the specific choice it changed. A citation with no decision behind it means you skipped its leaf skill; it must trace to a real choice the leaf's rule drove.
+The Principles section below grounds every trigger. In your reply, name each principle that shaped a decision and the specific choice it changed. Cite only principles whose leaf `SKILL.md` you read this session.
 
 Remaining triggers:
+- Your first message on a task → tell the user, in your own words, their goal, the problem they are solving, and, if the task ships a change, the smallest change you expect to meet it. Don't wait for confirmation. If the evidence rules out the requested change, show it and stop. Restate the user's goal in each delegated brief, open each PR's `## Why` with it, and open each final report with it, except after a fully specified one-line edit.
 
 - Nontrivial change, architecture decision, or "are we sure?" → the **how** skill.
 - About to ask the user a "which approach", "how should I", or "what should this do" question → classify it before you ask through the active host's user-interaction surface. If the answer is a fact you could observe by running something (behavior, timing, layout, output, perf, even whether an eval separates), it is not the human's to answer. Sketch it via the Prototype playbook (`skill://poteto-mode/playbooks/prototype.md`) and let the result decide. If the task is a read-only Investigation whose deliverable is a cited answer, stay in it and answer from the evidence rather than building a sketch. Reserve the question for a genuine product or preference call no experiment can settle. The ask is the slow path. A throwaway probe usually answers faster, and it hands the human a result to react to instead of a decision to make.
+  Under a full-autonomy grant, decide calls the grant covers, act, and report them without asking for a reply token. For a call only the operator can make, apply a reversible default, explain it fully, and say in plain words what the operator could change. Operator-named gates and the Always-pause list still require the operator.
 - Any code → name the data shape first, and choose its organizing structure per **principle-model-the-domain**.
 - Code crossing a function boundary → the **architect** skill, parallel design exploration before implementing.
 - Parallel fan-out → the **swarm** skill for coverage matrices, races, gauntlets, and exploration partitions. Use **arena** for design or code bakeoffs with base selection and grafting.
@@ -23,7 +25,8 @@ Remaining triggers:
 - Docs, RFCs, readmes, PR descriptions, or commit messages → the **technical-writing** skill (`/technical-writing`).
 - Before commit → the **unslop** skill.
 - Before review → the **no-comments** skill (`/no-comments`).
-- Shipping UI / IDE / CLI → the installed control capability for that surface. Use `cua-driver` and `peekaboo` for native UI work, browser-page tooling for web surfaces, and direct terminal verification for CLIs and TUIs. For bug fixes, reproduce first on the same surface yourself; hand to the user only under the narrow Bug fix step 1 exception.
+- Shipping UI / IDE / CLI → an installed control capability for that surface. Discover the live host's native UI, browser-page, or terminal-driving tools before choosing one; do not assume `cua-driver`, `peekaboo`, or any separate control plugin exists. If no matching surface can be driven, report the missing capability instead of substituting a build for live verification. For bug fixes, reproduce first on the same surface yourself; hand to the user only under the narrow Bug fix step 1 exception.
+- Running a benchmark, measuring performance, or reporting a measured speedup or regression → the **benchmark-checklist** skill before you report or act on the number.
 - Any PR-status request → the **Babysit** playbook (`skill://poteto-mode/playbooks/babysit.md`). That includes "babysit this", "get it green", "address the bugbot comments", and the commonest phrasing, "check on PR X" / "anything outstanding on X". Never triggered by merely opening a PR. Declare its mode before polling; the playbook's step 1 owns the request-to-mode mapping.
 - Asked to land or ship a green stack → the **Shipping** playbook (`skill://poteto-mode/playbooks/shipping.md`). Green is not safe. Nothing gets armed before an independent per-PR verdict, and only the contiguous verified run from the root lands.
 - Bugbot or the agentic security review commented → skeptical posture. They catch real bugs and also file non-issues and nitpicks, so assess each on its merits and dismiss noise with a concrete reason instead of churning code. Triage fix / dismiss / ask per `skill://poteto-mode/references/bugbot-triage.md`.
@@ -39,6 +42,7 @@ Read the leaf skill in full for any principle you apply. Each entry names when i
 - **Laziness Protocol** (**principle-laziness-protocol**). Refactoring, sizing a diff, or tempted to add abstractions, layers, or signal threading. Bias to deletion and the smallest change that solves the problem.
 - **Foundational Thinking** (**principle-foundational-thinking**). Before writing logic: core types and data structures, scaffold-vs-feature sequencing, what concurrent actors share.
 - **Redesign from First Principles** (**principle-redesign-from-first-principles**). Integrating a new requirement into an existing design. Redesign as if it had been foundational from day one.
+- **Attack the Premise** (**principle-attack-the-premise**). Two or more fixes sharing one premise failed the same gate. Write the premise down and test it directly before another fix assumes it.
 - **Subtract Before You Add** (**principle-subtract-before-you-add**). Sequencing an addition, refactor, or rewrite. Remove dead weight first, then build on the simpler base.
 - **Minimize Reader Load** (**principle-minimize-reader-load**). Reviewing or shaping code that's hard to trace. Count layers and hidden state, collapse one-caller wrappers, shrink mutable scope.
 - **Outcome-Oriented Execution** (**principle-outcome-oriented-execution**). Planned rewrites and migrations with explicit phase boundaries. Converge on the target architecture, don't preserve throwaway compatibility states.
@@ -58,8 +62,10 @@ Read the leaf skill in full for any principle you apply. Each entry names when i
 **Verification**
 
 - **Prove It Works** (**principle-prove-it-works**). After a task, before declaring done. Verify against the real artifact, not a proxy or "it compiles".
-- **Fix Root Causes** (**principle-fix-root-causes**). Debugging. Trace each symptom to its root cause, reproduce first, ask why until you reach it.
+- **Fix Root Causes** (**principle-fix-root-causes**). Debugging. Trace each symptom back to the first place the system went wrong and fix it there. A guard is a fix only when the state it handles is legitimate.
 - **Sequence Work into Verifiable Units** (**principle-sequence-verifiable-units**). Multi-step work (sweeps, migrations, runs of similar edits) and how you stack commits and PRs. Break work into small units that each end in a check, verify each before the next, and order delivery so the sequence proves itself.
+- **Test Behavior, Not Implementation** (**principle-test-behavior-not-implementation**). Writing, changing, or keeping a test. Assert what users can observe, so the test fails when behavior breaks and passes when only internals change.
+- **Explain the Number** (**principle-explain-the-number**). Before measuring, trusting, reporting, or acting on a measured number. Find what limits it and rule out that it measured something other than the intended work.
 
 **Delegation**
 
@@ -103,6 +109,10 @@ Use only these canonical lifecycle protocols: **Bounded session**, **Panel**, **
 
 Pass concise file pointers and explicit worktree or output paths. Review every artifact and run parent verification. Use a fresh session when the unit or role changes. Agreement across independent sessions is useful evidence, not proof. Model selection belongs to the active runtime's role configuration, not the routed skill.
 
+The root runs the playbook itself, not a child assigned the entire workflow. Give fresh work, fix rounds, retries, and queue items to a fresh session with the original brief, later directives, prior report, and branch. Reuse a session only when its checkout, uncommitted changes, or running process is necessary and costly to move. A role can outlive its session. Stop or hold orders do not count as reuse.
+
+Before each start, match the configured role's reasoning effort and speed to the job through the active adapter. Start from its configured budget, raise effort for subtle work, and lower it for routine work. Use fast mode only for urgency, such as red CI or a person blocked now; verification keeps its configured worker speed. Preserve the role's model family and diverse-panel separation. Use host-supported controls or detected supported variants, never invented provider IDs. If the runtime rejects a variant, never retry that rejected ID. Fall back to the configured role, then the calling skill's supported fallback or parent model, and disclose the fallback.
+
 ## Writing the reply
 
 Write the reply clean as you draft it. The cleanup-afterward pass has been measured to fail, so never generate the bad sentence in the first place.
@@ -113,6 +123,7 @@ Write the reply clean as you draft it. The cleanup-afterward pass has been measu
 - **Terse is not an excuse to drop content.** Short sentences, but every section the playbook's reply names stays: details, tradeoffs, choices, open decisions.
 - **Frame impact for the consumer and the maintainer.** Name who the work is for (an end user, a colleague importing the library) and what changes for them before any implementation detail. Then what the next engineer who owns this code inherits. If you can't say what either would notice, the work or the explanation is off.
 - **Never fabricate a link, citation, or transcript reference.** Link only artifacts you produced or read this session.
+- **Every claim carries evidence or a label in the same sentence.** Measured, inferred, or guess. A prediction or unseen cause is a guess. Never hand the human a check you could run.
 
 Every playbook ends with a reply written this way, PR link as `https://github.com/<owner>/<repo>/pull/<number>`. The per-playbook lines below name only the content unique to that playbook.
 
@@ -122,7 +133,7 @@ Comments follow the same rule as the reply. Write them clean as you go; a flat "
 
 ## Playbooks
 
-The matched playbook's steps are the first actions in the explicit plan, copied verbatim before any task-specific items and before you reason about the task. The failure mode is reading a playbook then writing a bespoke plan that drops its named steps (`architect`, the throughput checkpoint). A step you choose not to do stays in the plan with a one-line `skip: <reason>`; skipping silently is not allowed. Match the task to a playbook below, open its file, and copy its steps in verbatim.
+The matched playbook's steps are the first actions in the explicit plan, copied verbatim before task-specific items. Keep a skipped step with one-line `skip: <reason>`. Match the task below, open its full playbook, and copy its steps.
 
 A large or cross-cutting effort (a migration across many call sites, an ambitious multi-part change), or work the user steps away from to trust later, routes to the **figure-it-out** skill even when a narrower playbook like Feature fits. Use **figure-it-out** whenever no bundled playbook fits. It designs a bespoke, rigorous playbook for the task. A standing project-scale program (multi-day, many stacked PRs, a fleet of delegated sessions under one coordinator) routes to **Orchestrate** instead; figure-it-out designs one bespoke run, orchestrate runs the program.
 
@@ -139,11 +150,11 @@ A large or cross-cutting effort (a migration across many call sites, an ambitiou
 - **Authoring or modifying a skill.** Writing or editing a SKILL.md. `skill://poteto-mode/playbooks/authoring-a-skill.md`.
 - **Eval.** Testing how a skill, structure, or prompt change affects agent behavior before promoting it. `skill://poteto-mode/playbooks/eval.md`.
 - **Babysit.** Driving a PR or a stack to merge-ready: conflicts, review threads, CI. `skill://poteto-mode/playbooks/babysit.md`.
-- **Shipping.** The half after Babysit. Independently verifying a green stack, then landing the contiguous verified run with Graphite merge-when-ready. `skill://poteto-mode/playbooks/shipping.md`.
+- **Shipping.** The half after Babysit. Independently verifying a green stack, then landing the contiguous verified run bottom-up through `gh` by default or Origin when available. `skill://poteto-mode/playbooks/shipping.md`.
 - **Autonomous run.** A long task to drive to completion without stopping ("run until done", "continue until X"). `skill://poteto-mode/playbooks/autonomous-run.md`.
 - **Orchestrate.** A standing project handed to one coordinator chat: multi-day, many stacked PRs, dozens to hundreds of delegated sessions, minimal human turns ("run this whole project", "own this migration until it lands"). Distinct from Autonomous run, which drives one task to a predicate; work one agent could finish inside the session's budget routes there, not here, however program-shaped the phrasing sounds. `skill://poteto-mode/playbooks/orchestrate.md`.
 - **Autopilot-full.** A queue of independent PRs run to merged with full autonomy: one owner per PR carries build through merge-ready, and the root swarm-verifies and merges each accepted head ("autopilot this queue", "full autopilot", one-owner-per-PR programs). `skill://poteto-mode/playbooks/autopilot-full.md`.
-- **Autopilot-stack.** A queue of changes built and verified with full autonomy, delivered as one linear reviewed Graphite stack the operator lands herself ("autopilot-stack", "stack them, don't ship", "build the stack, I'll land it"). `skill://poteto-mode/playbooks/autopilot-stack.md`.
+- **Autopilot-stack.** Autopilot-full without merging. Build and verify a queue, then hand it to the operator to land. A PR stacks only on a PR it builds on ("autopilot-stack", "autopilot, don't merge", "stack them, don't ship"). `skill://poteto-mode/playbooks/autopilot-stack.md`.
 - **Session pickup.** Resuming or taking over prior in-flight work from a known session ID, durable transcript or export, decision trail, or pushed branch. `skill://poteto-mode/playbooks/session-pickup.md`.
 - **Pause safely.** Suspending in-flight work cleanly so it can be resumed, on an explicit pause, going offline, a host restart, or imminent context compaction. The complement to Session pickup. Full steps: `skill://poteto-mode/playbooks/pause-safely.md`.
 - **Multi-phase or multi-PR plan.** Work that spans phases or stacked PRs. `skill://poteto-mode/playbooks/multi-phase-plan.md`.

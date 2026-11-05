@@ -10,19 +10,9 @@ Follow the [portable runtime contract](../pstack-pi/references/runtime.md) for t
 
 Mine the current conversation for durable learnings, then route them into skill edits.
 
-## When to invoke
+Invoke when the user says "reflect" or "/reflect". Skip when the conversation is trivial, off-topic, or already covered by an existing skill the parent followed correctly. One-offs are not learnings.
 
-- The user said "reflect" or "/reflect".
-- A complex task (5+ tool calls) just landed cleanly and the recipe is worth keeping.
-- The agent hit dead ends, found the working path, and the path generalizes.
-- The user corrected the agent's approach mid-task.
-- A non-trivial workflow emerged that isn't captured anywhere.
-
-Skip when the conversation is trivial, off-topic, or already covered by an existing skill the parent followed correctly. One-offs are not learnings.
-
-## Process
-
-### 1. Locate the active transcript
+## 1. Locate the active transcript
 
 The parent resolves its own transcript before fanning out. Use the host's active history resource, an explicit transcript directory, or `$PSTACK_TRANSCRIPTS_DIR`, in that order. Never scan another workspace or a global vendor history tree. If no transcript resolves, write a tight digest of the session and use that instead.
 
@@ -30,13 +20,13 @@ The parent resolves its own transcript before fanning out. Use the host's active
 ls -t <agent-transcripts>/*.jsonl <agent-transcripts>/*/*.jsonl <agent-transcripts>/*/subagents/*.jsonl 2>/dev/null | head -10
 ```
 
-Three transcript layouts: legacy flat (`<id>.jsonl`), current nested (`<id>/<id>.jsonl`), and subagent (`<parent>/subagents/<child>.jsonl`).
+That covers the legacy flat (`<id>.jsonl`), current nested (`<id>/<id>.jsonl`), and subagent (`<parent>/subagents/<child>.jsonl`) layouts. For each candidate, read the first JSONL line. Take the file whose `message.content[0].text` contains the conversation's opening user prompt. If none matches, pass a tight digest of the session instead.
 
-For each candidate, read the first JSONL line and check that `message.content[0].text` contains the conversation's opening user prompt. Take the matching path. If no path resolves, write a tight digest of the session and pass that instead.
-
-### 2. Spawn three reviewers in parallel
+## 2. Spawn three reviewers in parallel
 
 Launch three reviewer children concurrently through the host's task facility. Use the configured choices when present; otherwise use the canonical roles below. Grant each child read access to the transcript and any host tools needed for context lookups, but forbid file writes in the brief. If the host cannot combine read-only repository posture with external-tool access, preserve tool access and enforce no writes in the brief; the parent applies edits.
+
+Each reviewer and the synthesizer use the configured portable role entry below, or the host-supported fallback role when absent. For `auto` or `inherit-parent`, leave the explicit model unset only when the host supports that alias. If the host rejects an explicit choice, use its confirmed fallback and say so; if that fails, use the closest valid choice of the same family reported by the host. If none runs, report the missing review rather than inventing a model. Pick each child's host-supported reasoning level and fast or standard speed for the job, per the Subagents section of the **poteto-mode** skill.
 
 | Lens | Configured choice / fallback role | Prompt template |
 |---|---|---|
@@ -46,30 +36,32 @@ Launch three reviewer children concurrently through the host's task facility. Us
 
 Pass each template verbatim, substituting the transcript path or digest where marked. Reviewers return findings in their child reports.
 
-### 3. Synthesize
+## 3. Synthesize
 
 Launch one `synthesizer` child, using the configured `reflect synthesizer` choice when present. Give it the host tools needed to spot-verify citations while forbidding repository writes in its standalone brief. Use `references/synthesizer.md` verbatim, with each reviewer's full output inlined where marked. The synthesizer returns a structured Accepted / Rejected / Backlog list.
 
-### 4. Structural enforcement check
+## 4. Structural enforcement check
 
-Sanity-check the synthesizer's Accepted list. For any item that would be enforced more reliably by a lint rule, script, metadata flag, or runtime check, move it from Accepted to Backlog. The synthesizer already applies this criterion; this is a final pass before edits land. See the **encode-lessons-in-structure** principle skill.
+Move any Accepted item that a lint rule, script, metadata flag, or runtime check would enforce more reliably to Backlog. See the **encode-lessons-in-structure** principle skill.
 
-### 5. Apply
+## 5. Apply
 
-Before applying any Accepted edit, present the synthesizer's full Accepted/Rejected/Backlog output to the user and wait for explicit approval. The user picks which subset to apply and may redirect routings. Skill changes affect every future agent in the org; do not auto-apply.
+Present the synthesizer's full Accepted / Rejected / Backlog output and wait for explicit approval before applying any Accepted edit. The user picks the subset and may redirect routings. Skill changes affect every future agent in the org. Do not auto-apply.
 
-Backlog items file to whatever devex / backlog tracker your team uses automatically. Those are tracker submissions, not skill edits. Only the Accepted list waits for approval.
+File each Backlog item to your team's devex or backlog tracker without waiting. Only the Accepted list waits for approval.
 
-For each approved Accepted item, follow the Routing field exactly:
+Never edit a skill in an immutable plugin or package cache, including `plugins/cache/`. Before approval, show the destination in the host's project-local or user-selected skill root (within this package, `skills/<skill>/`). After approval, copy the skill folder there and edit the copy. Never open a PR or push.
 
-- Trivial existing-skill edit (a one-line bullet, a tightened sentence, a stale fact corrected): parent does directly.
+Follow each approved row's Routing exactly:
+
+- Trivial existing-skill edit (a one-line bullet, a tightened sentence, a stale fact corrected): the parent does it directly.
 - Substantive existing-skill edit (a new section, a new pattern table, more than ~10 lines): use the host's skill-authoring facility when available and run its draft / test / iterate loop; otherwise apply that loop directly.
 - `tune description: <skill path>` (the skill exists but didn't trigger when it should have): use the host's skill-authoring facility when available, or directly run the same description-review loop.
 - `new skill: <kebab-name>`: use the host's skill-authoring facility when available, or author it directly from package conventions. Do not invent the shape ad hoc.
 
-If your environment ships a SKILL.md validator, run it on every touched skill before declaring done. Skip this step if it doesn't.
+If your environment ships a SKILL.md validator, run it on every touched skill before declaring done.
 
-### 6. Summarize for the user
+## 6. Summarize for the user
 
 Short list, no preamble:
 
