@@ -64,6 +64,10 @@ Install from GitHub:
 omp install https://github.com/nandafirmans/oh-my-pstack
 ```
 
+The URL installs the published default branch, not your current feature branch.
+For unreleased changes, use the local-checkout command below; a successful URL
+installation alone does not verify that those changes were installed.
+
 OMP includes the native `task` tool; do not install `pi-subagents` for OMP.
 For local development, load a checkout at any path:
 
@@ -95,11 +99,14 @@ Read loaded skills through `skill://<name>` and invoke them interactively with
 `/skill:<name>`. Confirm custom agents in the live `task` inventory or `/agents`;
 do not assume skill discovery alone loads agents.
 
-From the target project, inspect a discovered skill without a model prompt:
+In a live OMP session, invoke `/skill:pstack-pi` or ask the agent to read
+`skill://pstack-pi`. On OMP 18.16.0, standalone `omp read skill://...` does
+not resolve the session's skill registry.
 
-```bash
-omp read skill://pstack-pi
-```
+For disposable installation tests, isolate `HOME` and `XDG_CONFIG_HOME` as
+well as `PI_CODING_AGENT_DIR`. The latter alone does not isolate the plugin
+registry. Do not pass `--no-extensions` when checking installed-plugin discovery;
+it disables that discovery. `--plugin-dir` explicitly loads a checkout instead.
 
 ### OpenCode
 
