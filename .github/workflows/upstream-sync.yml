@@ -57,47 +57,9 @@ jobs:
           path: ${{ runner.temp }}/pstack-review
           if-no-files-found: warn
 
-      - name: Verify package and updater
+      - name: Validate synchronized package
         if: steps.upstream.outputs.changed == 'true'
-        run: |
-          npm run verify
-          npm run test:sync
-          git diff --check
-
-      - name: Set up Bun
-        if: steps.upstream.outputs.changed == 'true'
-        uses: oven-sh/setup-bun@v2
-
-      - name: Test bundled watcher and planning scripts
-        if: steps.upstream.outputs.changed == 'true'
-        working-directory: skills/poteto-mode/scripts
-        run: |
-          bun install --frozen-lockfile --ignore-scripts
-          bun run test
-          bun run typecheck
-          bash -n worktree-audit.sh
-
-      - name: Set up Java for statechart integration tests
-        if: steps.upstream.outputs.changed == 'true'
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
-
-      - name: Fetch checksum-pinned TLC
-        if: steps.upstream.outputs.changed == 'true'
-        run: |
-          curl --fail --location --output "$RUNNER_TEMP/tla2tools.jar" https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar
-          printf '%s  %s\n' '936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88' "$RUNNER_TEMP/tla2tools.jar" | sha256sum --check
-          echo "TLA2TOOLS=$RUNNER_TEMP/tla2tools.jar" >> "$GITHUB_ENV"
-
-      - name: Test statechart integration
-        if: steps.upstream.outputs.changed == 'true'
-        working-directory: skills/statechart/scripts
-        run: |
-          npm install --ignore-scripts --no-audit --no-fund --package-lock=false
-          ../../poteto-mode/scripts/node_modules/.bin/tsc --project tsconfig.json --typeRoots ../../poteto-mode/scripts/node_modules/@types
-          npm test
+        uses: ./.github/actions/validate
 
       - name: Open update pull request
         if: steps.upstream.outputs.changed == 'true'

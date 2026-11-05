@@ -12,7 +12,7 @@ adapter.
 
 ## What is included
 
-- 44 upstream pstack skills and their supporting references.
+- 63 skills with supporting references, including the upstream pstack catalog.
 - Benny's three fail-closed issue-triage/reproduction skills.
 - `poteto-mode` for routing work through the right playbook.
 - `pstack-pi` for translating roles, delegation, models, transcripts, questions,
@@ -31,7 +31,7 @@ was used only as an early structural example; it is not an upstream source.
 Install the public GitHub package:
 
 ```bash
-pi install https://github.com/shrimpwtf/oh-my-pstack
+pi install https://github.com/nandafirmans/oh-my-pstack
 ```
 
 Start Pi in your project:
@@ -41,7 +41,7 @@ pi
 ```
 
 Use `pi list` to confirm the package. Use `pi update --extensions` to reconcile
-installed Git packages, or `pi remove https://github.com/shrimpwtf/oh-my-pstack`
+installed Git packages, or `pi remove https://github.com/nandafirmans/oh-my-pstack`
 to remove it. Pi packages run with full system access; review the source before
 installing and keep the package pinned or update it deliberately.
 
@@ -61,7 +61,7 @@ agents. It is separate from pstack because native Pi does not include subagents.
 Install from GitHub:
 
 ```bash
-omp install https://github.com/shrimpwtf/oh-my-pstack
+omp install https://github.com/nandafirmans/oh-my-pstack
 ```
 
 OMP includes the native `task` tool; do not install `pi-subagents` for OMP.
@@ -108,7 +108,7 @@ OpenCode natively loads Agent Skills from `.opencode/skills/` in a project or
 into one of those discovery directories:
 
 ```bash
-git clone https://github.com/shrimpwtf/oh-my-pstack.git \
+git clone https://github.com/nandafirmans/oh-my-pstack.git \
   ~/.local/share/oh-my-pstack
 mkdir -p ~/.config/opencode/skills
 cp -R ~/.local/share/oh-my-pstack/skills/. ~/.config/opencode/skills/
@@ -126,7 +126,7 @@ cp -R ~/.local/share/oh-my-pstack/skills/. ~/.config/opencode/skills/
 For project-local installation, use `.opencode/skills/` instead:
 
 ```bash
-git clone https://github.com/shrimpwtf/oh-my-pstack.git .pstack-source
+git clone https://github.com/nandafirmans/oh-my-pstack.git .pstack-source
 mkdir -p .opencode/skills
 cp -R .pstack-source/skills/. .opencode/skills/
 ```
@@ -194,20 +194,41 @@ project. Read `skills/setup-pstack/SKILL.md` for the complete setup contract.
 ## Automatic upstream updates
 
 `.github/workflows/upstream-sync.yml` checks the original pstack `main` branch
-every day at 04:17 UTC and can also be started manually. The pinned baseline lives
-in `upstream.lock.json`.
+daily at 04:17 UTC (`17 4 * * *`) and supports manual `workflow_dispatch` runs.
+The workflow must be present on the repository's default branch for scheduled
+runs and the manual dispatch entry point to be available. GitHub may delay
+scheduled runs. The pinned baseline lives in `upstream.lock.json`.
 
-The updater:
+The updater fetches the latest upstream revision, normalizes known Cursor
+runtime bindings for portable hosts, and updates upstream-owned files. It
+preserves OMP adapters and protected portability adaptations. If upstream
+changes a protected path, the update stops before writing managed changes.
+The workflow then prepares reconciliation proposals and retains them as the
+`pstack-protected-review` artifact. Proposals are not approvals: a maintainer
+must reconcile the protected files and supply a `--reviewed FILE` manifest
+bound to the exact baseline, upstream revision, protected paths, and local
+file hashes. Stale manifests and unresolved merge markers fail closed.
 
-1. Fetches the latest upstream revision.
-2. Normalizes known Cursor runtime bindings for portable hosts.
-3. Updates only upstream-owned files.
-4. Preserves OMP adapters and protected portability adaptations.
-5. Stops before writing if an adapted file changed upstream.
-6. Runs verification, updater tests, Bun tests, and strict TypeScript checking.
-7. Opens a pull request only after those checks pass.
+Safe updates run the shared `.github/actions/validate` action before the
+workflow opens or updates a pull request. The same action runs in
+`.github/workflows/validate.yml` for pull requests, pushes to `main`, and manual
+dispatches, with read-only `contents` permission. It checks package metadata
+and skills, updater scenarios, whitespace, bundled Bun tests and TypeScript,
+shell syntax, and the statechart integration with checksum-pinned TLC.
 
-Run it locally:
+The sync workflow retains `contents: write` and `pull-requests: write` so it can
+push its update branch and create a PR. A repository administrator must also
+enable **Settings > Actions > General > Workflow permissions >
+Allow GitHub Actions to create and approve pull requests**. This fork has that
+setting enabled; the repository's default token permission remains read-only.
+The workflow does not approve or merge PRs.
+
+PRs created with `GITHUB_TOKEN` do not trigger `pull_request` workflows.
+The sync workflow therefore validates its changes itself before creating a PR;
+do not assume its bot-created PR will receive a separate PR validation run.
+The hosted workflows have not been dispatched as part of this update.
+
+Run the updater locally from the repository root:
 
 ```bash
 npm run sync:check
@@ -215,21 +236,53 @@ npm run sync:apply -- --dry-run
 npm run sync:apply
 ```
 
-Protected adaptation changes require a human merge decision. The updater never
-silently overwrites them.
+Protected adaptation changes still require human reconciliation and a merge
+decision. The updater never silently overwrites them.
 
 ## Development and verification
+
+Use Node.js 22, Bun, and Java 17. From the repository root:
 
 ```bash
 npm run verify
 npm run test:sync
-bun install --cwd skills/poteto-mode/scripts --frozen-lockfile
-bun test orch watch-pr
-bunx tsc --project skills/poteto-mode/scripts/watch-pr/tsconfig.json --noEmit --strict
+git diff --check
+(
+  cd skills/poteto-mode/scripts
+  bun install --frozen-lockfile --ignore-scripts
+  bun run test
+  bun run typecheck
+  bash -n worktree-audit.sh
+)
 ```
 
-`npm run verify` checks skill inventory, frontmatter, local references, manifests,
-the upstream lock, and forbidden vendor-specific runtime bindings.
+`npm run verify` checks the skill inventory, frontmatter, local references,
+manifests, the upstream lock, and forbidden vendor-specific runtime bindings.
+The Bun package scripts select the current watcher and planning tests and
+their TypeScript project; run them from `skills/poteto-mode/scripts`, not the
+repository root.
+
+For the statechart integration, download and verify the same TLC release used
+by CI, then run its checks:
+
+```bash
+export TLA2TOOLS="$(mktemp -d)/tla2tools.jar"
+curl --fail --location --output "$TLA2TOOLS" \
+  https://github.com/tlaplus/tlaplus/releases/download/v1.7.4/tla2tools.jar
+printf '%s %s\n' \
+  '936a262061c914694dfd669a543be24573c45d5aa0ff20a8b96b23d01e050e88' \
+  "$TLA2TOOLS" | sha256sum --check
+(
+  cd skills/statechart/scripts
+  npm install --ignore-scripts --no-audit --no-fund --package-lock=false
+  ../../poteto-mode/scripts/node_modules/.bin/tsc --project tsconfig.json \
+    --typeRoots ../../poteto-mode/scripts/node_modules/@types
+  npm test
+)
+```
+
+These commands mirror the shared validation action. Local checks do not prove
+that GitHub-hosted triggers, repository permissions, or bot PR creation work.
 
 ## Host contract
 
