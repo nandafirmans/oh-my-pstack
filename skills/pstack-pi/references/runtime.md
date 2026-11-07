@@ -12,6 +12,13 @@ capability is unavailable, preserve the workflow gate and use the nearest truthf
 local equivalent. Do not claim a child, review, transcript, or live check happened
 unless the host reported it.
 
+When a host selects pstack as an engineering methodology, its authorization
+contract remains authoritative over imported autonomy and shipping instructions.
+The host owns ticket admission, recovery authorization, token and time limits,
+workspace ownership, independent acceptance, guarded commits, and Done or blocker
+transitions. Pstack does not grant publication rights, expand permissions, or add
+another scheduler or retry loop. Standard OMP mode does not require pstack.
+
 ## Canonical roles
 
 | pstack role | Required behavior |
@@ -61,6 +68,13 @@ exact model must be operator-approved. Project settings cannot grant per-call
 models. Prefer configured routing and omit task-item `model`. An
 `inherit-parent` preference is not a native model selector: omit a model override,
 and first check whether agent-specific settings or frontmatter already route it.
+
+Preserve configured model routing, thinking effort, and speed unless the operator
+explicitly requests a change. Do not raise effort automatically from an imported
+playbook's budget recommendation. Reuse established context and use one agent
+when it can complete the task correctly. Model-backed compatibility checks require
+explicit authorization, fixed limits, and opt-in execution. Exhaustion stops the
+work under the host's contract, not a suggestion to increase its budget.
 
 For native Pi, install the maintained `pi-subagents` package when per-role models
 or parallel children are required:
@@ -120,6 +134,20 @@ An arbitrary clone is not discovered automatically. For a clone at any path, set
 addresses avoid global-path assumptions. Interactive invocation is
 `/skill:<name> [arguments]` when `skills.enableSkillCommands` is enabled.
 
+OMP 18.17.0 adds `skills.manualSkills` globs. Matching skills stay discoverable
+through native commands and `skill://`, but disappear from the model catalog.
+This differs from ignored skills, `--no-skills`, and disabled skill commands.
+Keep automatically needed helpers visible unless the host explicitly loads them.
+Before automated router invocation, check `get_available_commands` for both
+`skill:poteto-mode` and `skill:pstack-pi`, and `get_state.dumpTools` for `task`.
+An unknown `/skill:` command can fall through to ordinary prompting. Fail closed
+on missing capabilities rather than treating a prompt acknowledgement as proof.
+
+Native invocation provenance is a `custom` message with `customType: skill-prompt`.
+Its `details` include `name`, resolved `path`, canonical `prompt`, and `lineCount`.
+Observe that record for the exact submitted prompt. It proves expansion, not
+semantic playbook selection, adherence, acceptance, or package revision.
+
 Custom skill directories do not load this package's `agents/`. For native local
 agents, copy the individual definitions into `<project>/.omp/agents/` (or use an
 OMP package/plugin loading path that discovers its `agents/` root). The live task
@@ -160,3 +188,26 @@ only a fallback. Re-arm a watcher after every state-changing wave.
 The root coordinator owns user interaction, approvals, integration, and final
 verification. A worker report is evidence, not proof. The root must inspect artifacts
 and run the promised checks on the integrated result.
+
+## OMP 18.18.0 compatibility
+
+The [tagged-source audit and native regression checks](omp-compatibility.md)
+cover discovery, invocation, task schemas, model policy, and accounting limits.
+Worker threads change placement, not tool authority or workspace independence.
+`task.workerThreads` defaults to 4, with the first worker eligible at 9 concurrent
+subagent runs. `0` keeps runs on the main thread. Do not increase fan-out to use
+workers. Isolated tasks require the exposed `isolated` field and separate host
+authorization. Their completed workspaces are not resumable owner sessions.
+
+Direct `agent://<id>` follow-ups remain supported. OMP 18.17.0 rejects child
+broadcasts to `agent://all`; the root may still broadcast. Async results and
+history identifiers remain scoped to the owning run. Cancellation must target
+recorded owned jobs, not processes found by name.
+
+Native session statistics include child usage carried in completed `task` result
+details. Live tree cost and persisted session totals are different views.
+Do not assume the parent's RPC token totals already include in-flight, parked
+follow-up, cancelled, undelivered, or externally launched work. Reconcile child
+records without double counting. Missing provider usage and pricing cannot prove
+billing. Native monetary caps share session-tree spend and gate new requests;
+in-flight requests can exceed the cap. They do not replace host token/time limits.

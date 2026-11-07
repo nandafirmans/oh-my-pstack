@@ -102,6 +102,15 @@ await collect(skillsRoot);
 
 for (const path of markdownFiles) {
   const source = await readFile(path, "utf8");
+  if (path === join(skillsRoot, "pstack-pi", "SKILL.md")) {
+    for (const match of source.matchAll(/```json\n([\s\S]*?)```/gu)) {
+      try {
+        JSON.parse(match[1]);
+      } catch {
+        failures.push(`${relative(root, path)} contains an invalid JSON task example`);
+      }
+    }
+  }
   for (const match of source.matchAll(/\]\(([^)#][^)]*)\)/gu)) {
     const target = match[1].split("#", 1)[0];
     if (target === "" || /^[a-z]+[0-9]*$/u.test(target)) continue;

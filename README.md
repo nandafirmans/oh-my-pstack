@@ -108,6 +108,36 @@ well as `PI_CODING_AGENT_DIR`. The latter alone does not isolate the plugin
 registry. Do not pass `--no-extensions` when checking installed-plugin discovery;
 it disables that discovery. `--plugin-dir` explicitly loads a checkout instead.
 
+#### OMP 18.18.0 compatibility
+
+Native provider-free regression checks target **18.18.0**. The
+[tagged-source audit](skills/pstack-pi/references/omp-compatibility.md) compares
+18.16.0 with 18.18.0 and separates static, native scripted, and real-provider
+evidence. No confirmed incompatibility required a manifest, agent, or playbook
+replacement. Other host adapters and Cursor sync boundaries remain unchanged.
+
+OMP 18.17.0 adds `skills.manualSkills` globs. These hide matching skills from the
+model catalog but preserve manual `/skill:` commands and `skill://` reads.
+Ignored skills, disabled skill commands, and `--no-skills` are different controls.
+Automated hosts must check both required skill commands and `task`, then observe
+the exact native `skill-prompt` record. Unknown commands can fall through to
+ordinary prompting. Provenance proves expansion, not workflow compliance.
+
+Task batches, default-worker routing, specialist selectors, and configured model
+aliases retain their existing contract. Worker threads change placement, not
+tool authority or workspace isolation. Preserve configured models and thinking
+effort. Do not increase fan-out or effort merely because the runtime supports it.
+Parent statistics include child usage carried by native task results, but cannot
+guarantee complete in-flight or follow-up accounting. Reconcile child records
+without double counting. Native monetary caps do not replace host token limits.
+
+For Backlog Web, pstack remains an optional methodology, not a scheduler or
+permission grant. Admission, recovery, limits, ownership, acceptance, guarded
+commits, and Done/blocker transitions remain host-owned. Standard OMP requires
+no pstack installation. The inspected public Backlog Web version guard still
+rejects 18.18.0. Its separate startup-isolation audit is required before host
+integration can run. This update neither modifies nor bypasses that guard.
+
 ### OpenCode
 
 OpenCode natively loads Agent Skills from `.opencode/skills/` in a project or
@@ -268,6 +298,21 @@ manifests, the upstream lock, and forbidden vendor-specific runtime bindings.
 The Bun package scripts select the current watcher and planning tests and
 their TypeScript project; run them from `skills/poteto-mode/scripts`, not the
 repository root.
+
+Run the separate native OMP compatibility check explicitly:
+
+```bash
+PSTACK_OMP_NATIVE_TESTS=1 npm run test:omp
+```
+
+Without the opt-in flag, `npm run test:omp` skips without launching OMP.
+The check uses disposable state, this checkout's `--plugin-dir`, and a
+deterministic in-process provider fixture. No external inference or provider
+credentials are used. It checks native discovery, invocation metadata, router
+playbook URI reads, manual visibility, negative controls, and agent capabilities.
+It does not prove semantic router decisions or real-provider delegation.
+Those tests require separate authorization and fixed token/time limits.
+See the audit for tested paths, source citations, and remaining risks.
 
 For the statechart integration, download and verify the same TLC release used
 by CI, then run its checks:

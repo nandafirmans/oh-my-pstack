@@ -86,6 +86,7 @@ Use one batch call for independent participants:
       "name": "CandidateB",
       "task": "Standalone brief for architecture candidate B, including its read-only scope.",
       "solutionSpace": "Architecture choice open; seek a simpler alternative to a state machine."
+    }
   ]
 }
 ```

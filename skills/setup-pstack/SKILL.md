@@ -95,6 +95,13 @@ Drop retired role entries not listed in step 5, including `how critics`, and sho
 
 ### 3. Budget, map, and confirm
 
+On OMP, preserve the host's current model, thinking, speed, and token/time limits
+by default. Apply the budget choices below only when the operator explicitly asks
+to change them. A host-selected methodology is not authorization to raise effort
+or spending limits. An exhausted run stays stopped under the host's recovery
+contract. See the runtime contract's OMP compatibility reference for accounting
+limits and provider-free regression checks.
+
 When model inventory and per-child model selection are available, ask for a budget using the host's structured interaction facility when available, otherwise one focused chat question. Offer these exact labels, naming the current budget when recorded:
 
 - `unlimited — max reasoning`
